@@ -86,7 +86,11 @@ def _dump_parameter_list(plugin: Any) -> None:
     config.METADATA_DIR.mkdir(parents=True, exist_ok=True)
     with open(config.PARAMETER_LIST_FILE, "w") as f:
         for i, param in enumerate(desc):
-            line = f"[{i:>4d}] {param['name']:<40s}  default={param['defaultValue']:.4f}  min={param['minValue']:.4f}  max={param['maxValue']:.4f}"
+            name = param.get('name', '?')
+            default = param.get('defaultValue', 0)
+            p_min = param.get('min', '?')
+            p_max = param.get('max', '?')
+            line = f"[{i:>4d}] {name:<40s}  default={default:.4f}  min={p_min}  max={p_max}"
             f.write(line + "\n")
     logger.info(
         "Parameter list saved. Inspect %s, then fill SYNTH_PARAMETERS in config.py.",
@@ -111,6 +115,11 @@ def _render_one(
     param_values: dict[str, float],
 ) -> np.ndarray | None:
     """Set parameters, trigger a note, render, and return normalised mono audio (or None if silent)."""
+    # Ensure Osc A and Filter are enabled
+    plugin.set_parameter(211, 1.0)  # Osc A On
+    plugin.set_parameter(215, 1.0)  # Filter On
+    plugin.set_parameter(40, 1.0)   # OscA>Fil (route Osc A through filter)
+
     # Set randomised parameters
     for name, idx in param_indices.items():
         plugin.set_parameter(idx, param_values[name])
